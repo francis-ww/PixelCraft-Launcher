@@ -12,6 +12,7 @@ The application is structured into strict architectural tiers designed around st
 ┌─────────────────────────────────────────────────────────────┐
 │                       Renderer Process                      │
 │        (React 19, Tailwind CSS, 16-bit Design Tokens)       │
+│  Independent, non-commercial, privately developed launcher  │
 └──────────────────────────────┬──────────────────────────────┘
                                │ IPC (contextBridge, Strict Whitelist)
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -85,9 +86,9 @@ The application is structured into strict architectural tiers designed around st
 - **RFC 7636 PKCE Public Client Flow**:
   - 32-byte base64url `code_verifier` with SHA-256 `code_challenge`.
   - Cryptographically secure 32-hex `state` validation against CSRF.
-  - Temporary HTTP loopback listener bound exclusively to `127.0.0.1` (`http://localhost:<port>/`) for authorization code reception.
+  - Temporary HTTP loopback listener bound to `127.0.0.1` (`http://localhost:<port>/`) for authorization code reception.
   - Automatic browser launch using the system default browser.
-  - Concurrency lock and 120-second timeout safeguard.
+  - Host validation (`localhost` / `127.0.0.1`) and 120-second timeout safeguard.
 - **Xbox Live & Minecraft Authentication Pipeline**:
   - Exchange Microsoft OAuth access token for Xbox Live User Token.
   - Authorize with XSTS for the `rp://api.minecraftservices.com/` relying party.
@@ -96,7 +97,7 @@ The application is structured into strict architectural tiers designed around st
   - Retrieve player profile (UUID, official username, active skin preview URL).
   - Error classification for child accounts (2148916238), missing Xbox gamertags (2148916233), region restrictions (2148916235), and rate limits (429).
 - **Windows DPAPI Credential Storage**:
-  - Session refresh tokens are encrypted at rest using Windows DPAPI via Electron `safeStorage`.
+  - Session refresh tokens are encrypted at rest using OS-protected credential encryption via Windows DPAPI (Electron `safeStorage`).
   - Plaintext fallback is rejected; if DPAPI is unavailable, credentials are not saved.
   - Sanitized public profiles in `accounts.json` contain zero secrets or tokens.
   - Account deletion automatically purges encrypted credentials from the DPAPI store.
@@ -105,6 +106,9 @@ The application is structured into strict architectural tiers designed around st
   - Validates token lifetime and transparently executes silent refresh if near expiry.
   - Injects `--username <Name> --uuid <UUID> --accessToken <Token> --userType mojang` for Microsoft accounts.
   - Injects `--username <Name> --uuid <UUID> --userType legacy` for offline accounts.
+
+> [!NOTE]
+> **Microsoft Services Approval Status**: The OAuth 2.0 PKCE browser authorization loopback mechanism is implemented and validated. Downstream access to official Minecraft Services APIs is pending official Microsoft / Mojang Application ID approval. Online login is therefore temporarily restricted until official application approval is completed.
 
 ---
 

@@ -2,14 +2,14 @@
 
 Last Updated: October 2026
 
-**PixelCraft Launcher** is committed to protecting the privacy and security of its users. This document outlines how authentication, user credentials, and operational data are handled by the application.
+**PixelCraft Launcher** is an independent, non-commercial, privately developed Windows desktop application for Minecraft: Java Edition. This document outlines how authentication, user credentials, and operational data are handled by the application.
 
 ---
 
 ## 1. Core Principles
 
-- **No Developer Servers**: PixelCraft Launcher does not operate any centralized servers, user databases, telemetry collectors, or analytics backends.
-- **Zero Credential Interception**: The launcher **never** requests, intercepts, logs, or stores user Microsoft or Xbox passwords.
+- **No Developer Servers**: PixelCraft Launcher does not operate any centralized servers, user accounts, databases, telemetry collectors, or analytics backends.
+- **No Password Handling**: The launcher does not request, collect, or store Microsoft or Xbox account passwords. Authentication is conducted externally via the official Microsoft login portal in the user's system web browser.
 - **Local-Only Storage**: All configuration files, game instances, mods, and encrypted session tokens remain strictly on the user's local file system.
 - **No Third-Party Analytics**: The launcher contains no advertising identifiers, third-party analytics trackers, or user behavioral profiling tools.
 
@@ -17,27 +17,31 @@ Last Updated: October 2026
 
 ## 2. Microsoft & Xbox Authentication
 
-PixelCraft Launcher integrates with Microsoft identity services strictly in accordance with official Microsoft and Mojang protocols:
+PixelCraft Launcher integrates with Microsoft identity services in accordance with official Microsoft and Mojang protocol specifications:
 
 1. **OAuth 2.0 PKCE Flow**:
    - The launcher initiates authentication by opening the official Microsoft login portal (`https://login.microsoftonline.com/`) in the user's **system default web browser**.
-   - Proof Key for Code Exchange (**PKCE**) using the SHA-256 (`S256`) method is enforced to protect against authorization code interception attacks.
-   - The authentication callback is received by a temporary, single-use HTTP loopback server listening exclusively on the loopback interface (`127.0.0.1`).
-   - A cryptographically random `state` parameter is generated per request and validated before the authorization code is consumed.
-   - As soon as the callback is received, the loopback server and all associated network sockets are immediately closed and destroyed.
+   - Proof Key for Code Exchange (**PKCE**) using the SHA-256 (`S256`) method is enforced to protect against authorization code interception.
+   - The authentication callback is received by a temporary, single-use HTTP loopback server listening on the loopback interface (`127.0.0.1`).
+   - A cryptographically random `state` parameter is generated per request and validated before the authorization code is accepted.
+   - Host headers are validated to ensure only loopback requests (`localhost` / `127.0.0.1`) are accepted.
+   - Once the callback is processed or timed out, the loopback server is closed and network resources are released.
 
-2. **Session Token Encryption (Windows DPAPI)**:
-   - Acquired session credentials (`refresh_token` and temporary `access_token`) are encrypted at rest using the **Windows Data Protection API (DPAPI)** via Electron's `safeStorage` subsystem.
-   - Decryption keys are tied to the local Windows user account and hardware encryption provider.
-   - Plaintext fallback storage is strictly forbidden. If DPAPI is unavailable, the launcher refuses to persist credentials.
-   - Metadata stored in `accounts.json` contains only non-sensitive public profile details (username, player UUID, skin preview URL, and active profile selection). No tokens or secrets exist in plaintext configuration files.
+2. **OS-Protected Credential Encryption (Windows DPAPI)**:
+   - Acquired session credentials (`refresh_token` and temporary `access_token`) are encrypted at rest using **Windows Data Protection API (DPAPI)** via Electron's `safeStorage` subsystem.
+   - Credential protection is managed by the operating system, binding encryption keys to the user's local Windows login account.
+   - Plaintext fallback storage is not permitted: if DPAPI encryption is unavailable, the launcher refuses to persist authentication tokens.
+   - Metadata stored in `accounts.json` contains only public profile details (username, player UUID, skin preview URL, and active account selection). No tokens or secrets exist in plaintext configuration files.
 
 3. **Game Launch Credential Passing**:
-   - When launching the Minecraft client, official session tokens (`--accessToken`) and verified UUIDs are passed directly to the game process via standard command-line arguments in the Electron Main process.
-   - The sandboxed Renderer process (the user interface) has no access to sensitive tokens.
+   - When launching the Minecraft client, authentication arguments (`--accessToken`) and verified UUIDs are passed directly to the game process via command-line arguments in the Electron Main process.
+   - The sandboxed Renderer process (the user interface) has no access to sensitive raw tokens.
 
 4. **Account Removal & Credential Wiping**:
-   - When a user logs out or removes an account within the launcher, all encrypted token records in the DPAPI store are permanently purged immediately.
+   - When a user logs out or removes an account within the launcher, its encrypted credentials in the DPAPI store are cleared.
+
+> [!NOTE]
+> **Microsoft Services Approval Status**: The OAuth 2.0 PKCE browser authorization flow and code exchange are fully implemented and verified. However, official **Minecraft Services Application ID approval is currently pending**. Consequently, downstream authentication with Minecraft Java Edition services is temporarily restricted until official application approval is completed by Microsoft / Mojang.
 
 ---
 
@@ -74,9 +78,9 @@ The launcher does not communicate with any other third-party servers.
 
 ## 5. Inquiries & Contact
 
-PixelCraft Launcher is developed as an open-source personal project by Francis Wang ([@francis-ww](https://github.com/francis-ww)).
+PixelCraft Launcher is an independent, non-commercial, privately developed Windows application by Francis Wang ([@francis-ww](https://github.com/francis-ww)).
 
-If you have any security or privacy questions, please open an issue in the official GitHub repository.
+If you have questions regarding this policy or the application's implementation, please open an issue in the official GitHub repository.
 
 ---
 
